@@ -220,5 +220,30 @@ if __name__ == '__main__' :
     # pickle 저장 예시
     mset_LR_form_joblib = joblib.load('mset_LR.pkl')
     print(mset_LR_form_joblib.predict(tsdat)['tsScore'])
+    
+    # Testing Model load
+    def mset_model_loader(model, tsdat) :
+        """
+        저장한 모델을 로드한 후, 로드한 모델과 데이터를 활용해 분석 결과 리턴
+        
+        Parameters
+        ----------
+        model : ?
+            로드한 모델
+        tsdat : array
+            예측 데이터
+
+        Returns
+        -------
+        모델 리턴과 동일
+
+        """
+        CL = model.CL_printor()
+        pred = model.predict(tsdat)
+        
+        return {'tsScore' : pred['tsScore'], 'UCL' : CL['UCL'], 'LCL' : CL['LCL'],
+                'varTsScore' : pred['varTsScore'], 'varUCL' : CL['varUCL'], 'varLCL' : CL['varLCL']}
+        
+    mset_model_loader(mset_LR_form_joblib, tsdat)
 
 
