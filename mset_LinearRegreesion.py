@@ -99,7 +99,7 @@ class mset_regress() :
         varTrScore =  trdat.values - y_hat_tr
         
         # Trscore rowsum
-        self.cov_scaler.fit(varTrScore) # cov scaler 학습
+        self.cov_scaler.fit(trdat) # cov scaler 학습
         scaled_varTrScore = self.cov_scaler.transform(varTrScore) # 변환
         trScore = L2norm(scaled_varTrScore).sum(axis = 1) # L2norm
         
@@ -151,21 +151,21 @@ class mset_regress() :
             tsdat = tsdat.values
             
         if tsdat.ndim == 1 :
-           num_rows, num_columns = tsdat.shape[0], 1
-           delete_axis = None
-           test_intercept = np.ones((1))
+            num_rows, num_columns = tsdat.shape[0], 1
+            delete_axis = None
+            test_intercept = np.ones((1))
            
-           # 변수 별 연산
-           y_hat_ts = np.zeros((num_rows))
-           for i in range(len(trdat.columns)):
-               testX = np.concatenate((test_intercept, np.delete(tsdat,i,axis=delete_axis)), axis=delete_axis)
-               y_hat_ts[i] = testX @ self.hat_array[i]
+            # 변수 별 연산
+            y_hat_ts = np.zeros((num_rows))
+            for i in range(len(trdat.columns)):
+                testX = np.concatenate((test_intercept, np.delete(tsdat,i,axis=delete_axis)), axis=delete_axis)
+                y_hat_ts[i] = testX @ self.hat_array[i]
         
-           # Row Sum
-           varTsScore =  tsdat - y_hat_ts
-           scaled_varTsScore = self.cov_scaler.transform(varTsScore) # 변환
-           tsScore = L2norm(scaled_varTsScore).sum(axis = 0) # L2norm
-               
+               # Row Sum
+                varTsScore =  tsdat - y_hat_ts
+                scaled_varTsScore = self.cov_scaler.transform(varTsScore) # 변환
+                tsScore = L2norm(scaled_varTsScore).sum(axis = 0) # L2norm
+
         # tsdat.dim != 1
         else :
             num_rows, num_columns = tsdat.shape[0], tsdat.shape[1]
@@ -246,4 +246,23 @@ if __name__ == '__main__' :
         
     mset_model_loader(mset_LR_form_joblib, tsdat)
 
+# +
+df = pd.read_csv('test_data.csv', encoding='euc-kr')
+    
+trdat = df.iloc[0:600,:]
+tsdat = df.iloc[600:610,:]
+# -
 
+mset = mset_LinearRegression(trdat, tsdat, alpha = 0.05)
+
+plt.plot(mset['tsScore'])
+
+# +
+a = msetLR_covariance_scaler()
+a.fit(trdat)    
+
+a.transform(tsdat).shape
+
+# -
+
+plt.plot(tsdat.values[:,20])
