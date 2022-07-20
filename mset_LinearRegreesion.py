@@ -5,6 +5,7 @@ Created on Tue Jul 12 16:49:30 2022
 @author: User
 """
 
+# +
 import numpy as np
 import pandas as pd
 import joblib
@@ -58,7 +59,7 @@ class msetLR_covariance_scaler() :
             
         scaled_residual = np.dot(np.array(tsdat), self.cov_inv_matrix)
         return scaled_residual
-
+    
 class mset_regress() :
     
     def __init__(self) :
@@ -184,7 +185,7 @@ class mset_regress() :
             tsScore = L2norm(scaled_varTsScore).sum(axis = 1) # L2norm
             
         return {'tsScore' : tsScore, 'varTsScore' : scaled_varTsScore}
-
+    
 def mset_LinearRegression(trdat, tsdat, alpha = 0.05) :
     
     model = mset_regress()
@@ -197,6 +198,9 @@ def mset_LinearRegression(trdat, tsdat, alpha = 0.05) :
     
     return {'trScore' : fit['trScore'], 'tsScore' : pred['tsScore'], 'UCL' : CL['UCL'], 'LCL' : CL['LCL'],
             'varTrScore' : fit['varTrScore'], 'varTsScore' : pred['varTsScore'], 'varUCL' : CL['varUCL'], 'varLCL' : CL['varLCL']}
+# -
+
+
 
 # 예제
 if __name__ == '__main__' :
