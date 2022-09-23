@@ -2,10 +2,11 @@
 """
 Created on Tue Jul 12 16:49:30 2022
 
-@author: User
+@author: Su Hong
+
+코드 최신화
 """
 
-# +
 import numpy as np
 import pandas as pd
 import joblib
@@ -59,7 +60,7 @@ class msetLR_covariance_scaler() :
             
         scaled_residual = np.dot(np.array(tsdat), self.cov_inv_matrix)
         return scaled_residual
-    
+
 class mset_regress() :
     
     def __init__(self) :
@@ -85,6 +86,7 @@ class mset_regress() :
             Mset Linearregresion의 Train 잔차 (이상감지 통계량)
 
         """
+        
         train_intercept = np.ones((trdat.shape[0],1))    
         y_hat_tr = np.zeros((trdat.shape[0], trdat.shape[1]))
         self.hat_array = np.zeros((len(trdat.columns), len(trdat.columns)))
@@ -93,8 +95,8 @@ class mset_regress() :
             trainX = np.concatenate((train_intercept, np.delete(trdat.values,i,axis=1)), axis=1)
             trainY = trdat.values[:,i]
             
-            self.hat_array[i] = np.linalg.pinv(trainX.transpose() @ trainX) @ trainX.transpose() @ trainY
-            y_hat_tr[:,i] = trainX @ self.hat_array[i]            
+            self.hat_array[:,i] = np.linalg.pinv(trainX.transpose() @ trainX) @ trainX.transpose() @ trainY
+            y_hat_tr[:,i] = trainX @ self.hat_array[:,i]            
             
         # 각 변수 별 Trscore
         varTrScore =  trdat.values - y_hat_tr
@@ -106,7 +108,7 @@ class mset_regress() :
         
         ## CL
         # 각 변수 별 CL
-        for i in range(len(trdat.columns)) :
+        for i in range(trdat.shape[1]) :
             
             self.varucl.append(bootstrap_limit(scaled_varTrScore[:, i], alpha=alpha/2))
             self.varlcl.append(bootstrap_limit(scaled_varTrScore[:, i], alpha=alpha/2, upper=False))
@@ -152,21 +154,21 @@ class mset_regress() :
             tsdat = tsdat.values
             
         if tsdat.ndim == 1 :
-            num_rows, num_columns = tsdat.shape[0], 1
-            delete_axis = None
-            test_intercept = np.ones((1))
+           num_rows, num_columns = tsdat.shape[0], 1
+           delete_axis = None
+           test_intercept = np.ones((1))
            
-            # 변수 별 연산
-            y_hat_ts = np.zeros((num_rows))
-            for i in range(len(trdat.columns)):
-                testX = np.concatenate((test_intercept, np.delete(tsdat,i,axis=delete_axis)), axis=delete_axis)
-                y_hat_ts[i] = testX @ self.hat_array[i]
+           # 변수 별 연산
+           y_hat_ts = np.zeros((num_rows))
+           for i in range(num_columns):
+               testX = np.concatenate((test_intercept, np.delete(tsdat,i,axis=delete_axis)), axis=delete_axis)
+               y_hat_ts[i] = testX @ self.hat_array[i]
         
-               # Row Sum
-                varTsScore =  tsdat - y_hat_ts
-                scaled_varTsScore = self.cov_scaler.transform(varTsScore) # 변환
-                tsScore = L2norm(scaled_varTsScore).sum(axis = 0) # L2norm
-
+           # Row Sum
+           varTsScore =  tsdat - y_hat_ts
+           scaled_varTsScore = self.cov_scaler.transform(varTsScore) # 변환
+           tsScore = L2norm(scaled_varTsScore).sum(axis = 0) # L2norm
+               
         # tsdat.dim != 1
         else :
             num_rows, num_columns = tsdat.shape[0], tsdat.shape[1]
@@ -175,7 +177,7 @@ class mset_regress() :
 
             # 변수 별 연산 
             y_hat_ts = np.zeros((num_rows, num_columns))
-            for i in range(len(trdat.columns)) :
+            for i in range(num_columns) :
                 testX = np.concatenate((test_intercept, np.delete(tsdat,i,axis=delete_axis)), axis=delete_axis)
                 y_hat_ts[:,i] = testX @ self.hat_array[:,i]
 
@@ -183,9 +185,8 @@ class mset_regress() :
             varTsScore =  tsdat - y_hat_ts
             scaled_varTsScore = self.cov_scaler.transform(varTsScore) # 변환
             tsScore = L2norm(scaled_varTsScore).sum(axis = 1) # L2norm
-            
         return {'tsScore' : tsScore, 'varTsScore' : scaled_varTsScore}
-    
+
 def mset_LinearRegression(trdat, tsdat, alpha = 0.05) :
     
     model = mset_regress()
@@ -198,75 +199,49 @@ def mset_LinearRegression(trdat, tsdat, alpha = 0.05) :
     
     return {'trScore' : fit['trScore'], 'tsScore' : pred['tsScore'], 'UCL' : CL['UCL'], 'LCL' : CL['LCL'],
             'varTrScore' : fit['varTrScore'], 'varTsScore' : pred['varTsScore'], 'varUCL' : CL['varUCL'], 'varLCL' : CL['varLCL']}
-# -
-
-
 
 # 예제
 if __name__ == '__main__' :
     df = pd.read_csv('test_data.csv', encoding='euc-kr')
     
     trdat = df.iloc[0:600,:]
-    tsdat = df.iloc[600:650,:]
-    
-    dd = mset_regress()
-    dd.fit(trdat)
-    dd.hat_array
-    dd.predict(tsdat)
-    
-    tsdat.values @ dd.hat_array
-    
-    tsdat.ndim
+    tsdat = df.iloc[600:630,:]
     
     LR_model = mset_LinearRegression(trdat, tsdat)
     print(LR_model['tsScore'])
     
+    import matplotlib.pyplot as plt
+    
+    id = 3
+    plt.figure(figsize=(8,4))
+    plt.plot(LR_model['varTsScore'][:,id], color='blue')
+    plt.axhline(y=LR_model['varUCL'][id], color='red')
+    plt.axhline(y=LR_model['varLCL'][id], color='red')
+    plt.show()
     # pickle 저장 예시
-    mset_LR_form_joblib = joblib.load('mset_LR.pkl')
-    print(mset_LR_form_joblib.predict(tsdat)['tsScore'])
+    # mset_LR_form_joblib = joblib.load('mset_LR.pkl')
+    # print(mset_LR_form_joblib.predict(tsdat)['tsScore'])
+
+# Testing Model load
+def mset_model_loader(model, tsdat) :
+    """
+    저장한 모델을 로드한 후, 로드한 모델과 데이터를 활용해 분석 결과 리턴
     
-    # Testing Model load
-    def mset_model_loader(model, tsdat) :
-        """
-        저장한 모델을 로드한 후, 로드한 모델과 데이터를 활용해 분석 결과 리턴
-        
-        Parameters
-        ----------
-        model : ?
-            로드한 모델
-        tsdat : array
-            예측 데이터
+    Parameters
+    ----------
+    model : ?
+        로드한 모델
+    tsdat : array
+        예측 데이터
+    Returns
+    -------
+    모델 리턴과 동일
 
-        Returns
-        -------
-        모델 리턴과 동일
-
-        """
-        CL = model.CL_printor()
-        pred = model.predict(tsdat)
-        
-        return {'tsScore' : pred['tsScore'], 'UCL' : CL['UCL'], 'LCL' : CL['LCL'],
-                'varTsScore' : pred['varTsScore'], 'varUCL' : CL['varUCL'], 'varLCL' : CL['varLCL']}
-        
-    mset_model_loader(mset_LR_form_joblib, tsdat)
-
-# +
-df = pd.read_csv('test_data.csv', encoding='euc-kr')
+    """
+    CL = model.CL_printor()
+    pred = model.predict(tsdat)
     
-trdat = df.iloc[0:600,:]
-tsdat = df.iloc[600:610,:]
-# -
+    return {'tsScore' : pred['tsScore'], 'UCL' : CL['UCL'], 'LCL' : CL['LCL'],
+            'varTsScore' : pred['varTsScore'], 'varUCL' : CL['varUCL'], 'varLCL' : CL['varLCL']}
 
-mset = mset_LinearRegression(trdat, tsdat, alpha = 0.05)
-
-plt.plot(mset['tsScore'])
-
-# +
-a = msetLR_covariance_scaler()
-a.fit(trdat)    
-
-a.transform(tsdat).shape
-
-# -
-
-plt.plot(tsdat.values[:,20])
+# mset_model_loader(mset_LR_form_joblib, tsdat)

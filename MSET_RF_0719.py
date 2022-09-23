@@ -2,7 +2,7 @@
 """
 Created on Tue Jul 19 16:56:44 2022
 
-@author: suhon
+@author: suhong
 """
 
 import numpy as np
@@ -63,7 +63,7 @@ class msetRF_covariance_scaler() :
         transformed_data = np.dot(np.array(tsdat), self.cov_inv_matrix)
         
         return transformed_data
-        
+
 class mset_randomforest() :
     
     def __init__(self) :
@@ -191,7 +191,7 @@ class mset_randomforest() :
         tsScore = L2norm(ts_scaled_resi.sum(axis=1))
         
         return {'tsScore' : tsScore, 'varTsScore' : ts_resi}
-        
+
 
 def mset_RF(trdat, tsdat, alpha = 0.05, ntree = 100) :
     '''
@@ -233,10 +233,10 @@ def mset_RF(trdat, tsdat, alpha = 0.05, ntree = 100) :
 
 # 예제
 if __name__ == '__main__' :
-    df = pd.read_csv('D:\\Google 드라이브\\데이터 분석\\프로젝트\\엑센솔루션\\data\\test_data.csv', encoding='euc-kr')
+    df = pd.read_csv('test_data.csv', encoding='euc-kr')
     
     trdat = df.iloc[0:600, :]
-    tsdat = df.iloc[600:610, :]
+    tsdat = df.iloc[600:640, :]
     
     # d = mset_randomforest()
     # ff = d.fit(trdat, ntree= 10)
@@ -270,3 +270,17 @@ if __name__ == '__main__' :
                 'varTsScore' : pred['varTsScore'], 'varUCL' : CL['varUCL'], 'varLCL' : CL['varLCL']}
         
     # msetRF_model_loader(mset_rf_form_joblib, tsdat)
+
+import matplotlib.pyplot as plt
+id = 3
+plt.figure(figsize=(8,4))
+plt.plot(RF_model['varTsScore'][:,id], color='blue')
+plt.axhline(y=RF_model['varUCL'][id], color='red')
+plt.axhline(y=RF_model['varLCL'][id], color='red')
+plt.show()
+
+plt.figure(figsize=(8,4))
+plt.plot(RF_model['trScore'], color='blue')
+plt.axhline(y=RF_model['UCL'], color='red')
+plt.axhline(y=RF_model['LCL'], color='red')
+plt.show()

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Jul  6 14:29:39 2022
+Created on Tue Jul 19 16:56:44 2022
 
-@author: suhon
+@author: suhong
 """
 
 import numpy as np
@@ -51,7 +51,7 @@ class msetRF_covariance_scaler() :
     def fit(self, trdat):
         if isinstance(trdat, pd.DataFrame) :
             trdat = trdat.values
-        cov_mat = np.cov(trdat)
+        cov_mat = np.cov(trdat.transpose())
         self.cov_inv_matrix = matrix_inv(cov_mat)
         
     def transform(self, tsdat) :
@@ -60,7 +60,7 @@ class msetRF_covariance_scaler() :
         if isinstance(tsdat, list) :
             tsdat = np.array(tsdat)
             
-        transformed_data = np.dot(np.array(tsdat).transpose(), self.cov_inv_matrix)
+        transformed_data = np.dot(np.array(tsdat), self.cov_inv_matrix)
         
         return transformed_data
 
@@ -114,10 +114,10 @@ class mset_randomforest() :
             self.forests.append(forest)
             tr_resi.append(tr_score)
             
-        tr_resi = np.array(tr_resi)
+        tr_resi = np.array(tr_resi).transpose()
 
         # trScore(resi) rowsum
-        self.cov_scaler.fit(tr_resi) # cov scaler 학습
+        self.cov_scaler.fit(trdat) # cov scaler 학습
         scaled_varTrScore = self.cov_scaler.transform(tr_resi) # 변환
         trScore = L2norm(scaled_varTrScore.sum(axis=1)) # L2norm
         
@@ -184,7 +184,9 @@ class mset_randomforest() :
                 ts_score = tsdat[:, i] - ts_pred
                 
                 ts_resi.append(ts_score)
-            
+        
+        ts_resi = np.array(ts_resi).transpose()
+        
         ts_scaled_resi = self.cov_scaler.transform(ts_resi)
         tsScore = L2norm(ts_scaled_resi.sum(axis=1))
         
@@ -215,7 +217,6 @@ def mset_RF(trdat, tsdat, alpha = 0.05, ntree = 100) :
         upper, lower Control Limit,
     var ... :
         변수 별 trScore, tsScore, UCL, LCL
-        
 
     '''
     
@@ -226,6 +227,7 @@ def mset_RF(trdat, tsdat, alpha = 0.05, ntree = 100) :
     
     # model pickle 저장
     saved_model = joblib.dump(model, 'mset_RF.pkl')
+    
     return {'trScore' : fit['trScore'], 'tsScore' : pred['tsScore'], 'UCL' : CL['UCL'], 'LCL' : CL['LCL'],
             'varTrScore' : fit['varTrScore'], 'varTsScore' : pred['varTsScore'], 'varUCL' : CL['varUCL'], 'varLCL' : CL['varLCL']}
 
@@ -234,20 +236,18 @@ if __name__ == '__main__' :
     df = pd.read_csv('test_data.csv', encoding='euc-kr')
     
     trdat = df.iloc[0:600, :]
-    tsdat = df.iloc[600:650, :]
+    tsdat = df.iloc[600:640, :]
     
-    RF_model = mset_RF(trdat, tsdat, ntree = 10)
-    #print(RF_model['trScore'])
+    # d = mset_randomforest()
+    # ff = d.fit(trdat, ntree= 10)
+
+    RF_model = mset_RF(trdat, tsdat, ntree = 100)
+    # print(RF_model['trScore'])
     print(RF_model['tsScore'])
     #print(RF_model['UCL'])
     
-    # pickle 저장 예시
-    mset_rf_form_joblib = joblib.load('mset_RF.pkl') 
-    print(mset_rf_form_joblib.predict(tsdat)['tsScore'])
-    
-    
     # Testing Model load
-    def mset_model_loader(model, tsdat) :
+    def msetRF_model_loader(model, tsdat) :
         """
         저장한 모델을 로드한 후, 로드한 모델과 데이터를 활용해 분석 결과 리턴
         
@@ -269,6 +269,18 @@ if __name__ == '__main__' :
         return {'tsScore' : pred['tsScore'], 'UCL' : CL['UCL'], 'LCL' : CL['LCL'],
                 'varTsScore' : pred['varTsScore'], 'varUCL' : CL['varUCL'], 'varLCL' : CL['varLCL']}
         
-    mset_model_loader(mset_rf_form_joblib, tsdat)
+    # msetRF_model_loader(mset_rf_form_joblib, tsdat)
 
+import matplotlib.pyplot as plt
+id = 3
+plt.figure(figsize=(8,4))
+plt.plot(RF_model['varTsScore'][:,id], color='blue')
+plt.axhline(y=RF_model['varUCL'][id], color='red')
+plt.axhline(y=RF_model['varLCL'][id], color='red')
+plt.show()
 
+plt.figure(figsize=(8,4))
+plt.plot(RF_model['trScore'], color='blue')
+plt.axhline(y=RF_model['UCL'], color='red')
+plt.axhline(y=RF_model['LCL'], color='red')
+plt.show()
